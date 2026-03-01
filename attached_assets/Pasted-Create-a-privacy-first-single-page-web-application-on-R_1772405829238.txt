@@ -1,0 +1,87 @@
+Create a privacy-first, single-page web application on Replit that helps U.S. Bitcoin holders generate a draft IRS Form 1099-DA from self-custodial wallet CSV exports (Sparrow, Phoenix, Zeus, Muun, Wallet of Satoshi).
+
+CORE STACK
+
+Backend: Python 3.11 + Flask (no database, in-memory only)
+Frontend: HTML5 + vanilla JavaScript (Bitcoin orange theme)
+PDF: ReportLab
+AI: Venice AI (model kimi-k2-5)
+Payments: Cashu (persistent wallet, not ephemeral)
+1. CSV PARSER MODULE
+Create parsers for: Sparrow, Phoenix, Zeus, Muun, Wallet of Satoshi.
+Normalize all to schema: date (ISO day), type (send/receive), amount_btc, usd_value, fee_btc, tx_hash, description.
+Accept up to 10 CSV files (max 5MB each). Validate first 3 rows against selected wallet type.
+
+2. OPTIONAL CASHU DONATION (CRITICAL REQUIREMENTS)
+
+Persistent Wallet: Use a single persistent Cashu wallet with seed phrase stored in Replit Secret CASHU_SEED. Initialize with Wallet(seed=os.getenv("CASHU_SEED")).
+Optional Payment Flow: Display a 200 satoshi Lightning invoice with message "Optional donation to cover server costs". Show QR code and lightning: URI.
+5-Second Skip: Implement a 5-second countdown timer. After 5 seconds, enable a "Continue without paying" button that allows the user to proceed regardless of payment status.
+Payment Verification: If user pays, verify via wallet.check_invoice() and set session flag paid=True (RAM only).
+Auto-Sweep: When wallet balance reaches ≥10,000 sats, automatically send the ENTIRE wallet balance via Lightning to npub1c4ce67l50mycenl62vk2876a86tezg4kjmdetst0qu8gw942h99qtmpxej@npub.cash. Use wallet.pay_invoice() to the provided Lightning address. Run this check on each request or in a background thread.
+3. VENICE AI INTEGRATION (Kimi K2.5)
+Before sending to AI: Hash tx_hash with SHA256, strip descriptions, round timestamps to day, round BTC to 8 decimals.
+Prompt: "You are a crypto-tax specialist. Using the supplied Bitcoin transaction list, calculate data for IRS 1099-DA. Separate short-term (≤365 days) and long-term (>365 days). For each compute: acquisition date, disposition date, proceeds (USD), cost basis (USD), gain/loss (USD). Return ONLY JSON with fields: short_term {proceeds, cost_basis, gain_loss, count}, long_term {proceeds, cost_basis, gain_loss, count}. No personal identifiers."
+If AI fails, fallback to FIFO calculator.
+
+4. 1099-DA PDF GENERATION
+Use ReportLab to create draft 1099-DA.
+LEAVE BLANK (user fills): Payer name/address/TIN, Recipient name/address/TIN, Account number.
+FILL: Boxes 1a-1g, 2, 3 with AI-derived data.
+Add watermark: "DRAFT - VERIFY ALL CALCULATIONS".
+Output: draft_1099DA.pdf + tax_data.json download buttons.
+
+5. USER FLOW
+
+Landing page with privacy notice
+Upload section (drag-drop, 10 files max)
+Optional donation page: 200 sat invoice + 5-second countdown skip button
+Processing spinner (CSV parse → AI query → PDF build)
+Download page with draft PDF and raw JSON
+6. PRIVACY & SECURITY (CODE THESE EXPLICITLY)
+
+No database: Use tempfile.NamedTemporaryFile(delete=True) for CSVs, delete immediately after processing
+Session-only storage: Flask signed cookies only (app.secret_key from Secret FLASK_SECRET)
+Rate limiting: 3 requests per IP per hour (flask-limiter)
+Headers: X-Frame-Options DENY, X-Content-Type-Options nosniff, CSP strict
+Logging: Log only HTTP methods/endpoints, never transaction data or IPs
+Auto-expire: Clear session and temp files after 10 minutes inactivity
+7. FILE STRUCTURE
+
+
+Copy Code
+main.py (Flask app, routes: /, /upload, /donate, /check-payment, /generate)
+parsers/ (sparrow.py, phoenix.py, zeus.py, muun.py, wos.py, __init__.py)
+templates/index.html (single-page UI)
+static/style.css & script.js
+utils/cashu_wallet.py (persistent wallet wrapper with sweep logic)
+utils/ai_client.py (Venice AI wrapper with sanitization)
+utils/pdf_builder.py (ReportLab 1099-DA layout)
+requirements.txt
+8. DEPENDENCIES
+
+
+Copy Code
+flask
+flask-limiter
+pandas
+reportlab
+requests
+cashu
+werkzeug
+9. DELIVERABLE
+Generate complete, production-ready code for all files with detailed comments on:
+
+Privacy safeguards (where data is destroyed)
+Cashu persistent wallet implementation and auto-sweep logic
+AI data sanitization steps
+PDF box mapping
+Include README explaining:
+
+Set Replit Secrets: CASHU_SEED (generate a seed), VENICE_API_KEY, FLASK_SECRET
+How the optional 200 sat donation works with 5-second skip
+Auto-sweep triggers at 10,000 sats to the npub address
+Disclaimer that this generates draft forms only, not tax advice
+CRITICAL: The Cashu wallet must NOT be ephemeral. It must persist across sessions using the seed in Secrets. The donation must be optional with a 5-second bypass. The sweep must happen automatically when balance ≥10,000 sats.
+
+
