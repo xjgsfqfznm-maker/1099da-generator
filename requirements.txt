@@ -1,0 +1,10 @@
+flask
+flask-limiter
+pandas
+reportlab
+requests
+cashu
+werkzeug
+qrcode
+pillow
+gunicorn

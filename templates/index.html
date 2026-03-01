@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1099-DA Draft Generator — Bitcoin Tax Tool</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>₿</text></svg>" />
+</head>
+<body>
+  <!-- Page wrapper with Bitcoin orange theme -->
+  <div id="app">
+
+    <!-- ===== HEADER ===== -->
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="logo">
+          <span class="btc-symbol">₿</span>
+          <span class="logo-text">1099-DA <span class="logo-sub">Draft Generator</span></span>
+        </div>
+        <div class="header-badge">
+          <span class="badge-dot"></span>
+          Privacy-First · No Database · No Tracking
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== STEP INDICATOR ===== -->
+    <div class="steps-bar" id="stepsBar">
+      <div class="step active" id="step-indicator-1">
+        <div class="step-num">1</div><div class="step-label">Privacy Notice</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step" id="step-indicator-2">
+        <div class="step-num">2</div><div class="step-label">Upload CSVs</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step" id="step-indicator-3">
+        <div class="step-num">3</div><div class="step-label">Donation</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step" id="step-indicator-4">
+        <div class="step-num">4</div><div class="step-label">Generate</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step" id="step-indicator-5">
+        <div class="step-num">5</div><div class="step-label">Download</div>
+      </div>
+    </div>
+
+    <!-- ===== MAIN CONTENT AREA ===== -->
+    <main class="main-content">
+
+      <!-- ── STEP 1: Privacy Notice ── -->
+      <section class="card active" id="section-privacy">
+        <div class="card-icon">🔒</div>
+        <h2>Privacy-First Bitcoin Tax Tool</h2>
+        <p class="subtitle">Generate a draft IRS Form 1099-DA from your self-custodial wallet CSV exports.</p>
+
+        <div class="privacy-grid">
+          <div class="privacy-item">
+            <span class="pi-icon">🚫</span>
+            <strong>No Database</strong>
+            <p>Your data is never written to disk or stored in any database.</p>
+          </div>
+          <div class="privacy-item">
+            <span class="pi-icon">🔐</span>
+            <strong>Session-Only</strong>
+            <p>Transactions live in your encrypted session cookie — cleared after 10 minutes of inactivity.</p>
+          </div>
+          <div class="privacy-item">
+            <span class="pi-icon">🧹</span>
+            <strong>Immediate Deletion</strong>
+            <p>Uploaded files are read into memory only and immediately discarded.</p>
+          </div>
+          <div class="privacy-item">
+            <span class="pi-icon">🕵️</span>
+            <strong>No IP Logging</strong>
+            <p>Logs record only HTTP method and endpoint — never transaction data or IP addresses.</p>
+          </div>
+          <div class="privacy-item">
+            <span class="pi-icon">🤖</span>
+            <strong>AI Sanitization</strong>
+            <p>Transaction hashes are SHA-256 hashed; descriptions stripped before any AI processing.</p>
+          </div>
+          <div class="privacy-item">
+            <span class="pi-icon">⚡</span>
+            <strong>Optional Donation</strong>
+            <p>A 200-sat Lightning invoice is shown to help cover server costs. Fully skippable after 5 seconds.</p>
+          </div>
+        </div>
+
+        <div class="disclaimer-box">
+          <strong>⚠ Disclaimer:</strong> This tool generates <em>draft</em> forms only — not tax advice.
+          All calculations must be verified with a licensed CPA or tax professional before filing.
+          This form is <strong>not</strong> submitted to the IRS automatically.
+        </div>
+
+        <div class="supported-wallets">
+          <span class="sw-label">Supported wallets:</span>
+          <span class="sw-tag">Sparrow</span>
+          <span class="sw-tag">Phoenix</span>
+          <span class="sw-tag">Zeus</span>
+          <span class="sw-tag">Muun</span>
+          <span class="sw-tag">Wallet of Satoshi</span>
+        </div>
+
+        <button class="btn btn-primary btn-lg" onclick="App.goTo(2)">
+          I Understand — Continue →
+        </button>
+      </section>
+
+      <!-- ── STEP 2: Upload ── -->
+      <section class="card" id="section-upload">
+        <div class="card-icon">📂</div>
+        <h2>Upload Wallet CSV Exports</h2>
+        <p class="subtitle">Select your wallet type, then drag and drop up to 10 CSV files (max 5MB each).</p>
+
+        <div class="form-group">
+          <label for="walletSelect">Wallet Type</label>
+          <select id="walletSelect" class="select-input">
+            <option value="">— Select wallet —</option>
+            <option value="sparrow">Sparrow Wallet</option>
+            <option value="phoenix">Phoenix Wallet</option>
+            <option value="zeus">Zeus Wallet</option>
+            <option value="muun">Muun Wallet</option>
+            <option value="wos">Wallet of Satoshi</option>
+          </select>
+        </div>
+
+        <div class="dropzone" id="dropzone"
+             ondragover="App.handleDragOver(event)"
+             ondragleave="App.handleDragLeave(event)"
+             ondrop="App.handleDrop(event)"
+             onclick="document.getElementById('fileInput').click()">
+          <div class="dropzone-icon">📄</div>
+          <div class="dropzone-text">
+            <strong>Drag & drop CSV files here</strong><br>
+            or click to browse
+          </div>
+          <div class="dropzone-hint">Up to 10 files · Max 5MB each · CSV format only</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".csv" style="display:none"
+               onchange="App.handleFileSelect(event)" />
+
+        <div id="fileList" class="file-list"></div>
+
+        <div id="uploadError" class="error-box" style="display:none"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="App.goTo(1)">← Back</button>
+          <button class="btn btn-primary" id="uploadBtn" onclick="App.uploadFiles()" disabled>
+            Upload & Continue →
+          </button>
+        </div>
+      </section>
+
+      <!-- ── STEP 3: Donation ── -->
+      <section class="card" id="section-donate">
+        <div class="card-icon">⚡</div>
+        <h2>Optional Donation</h2>
+        <p class="subtitle">
+          Help cover server costs with a 200-sat Lightning donation.
+          <br>This is entirely optional — you can skip in <span id="countdown">5</span> seconds.
+        </p>
+
+        <div id="invoiceArea" class="invoice-area">
+          <div class="loading-spinner" id="invoiceSpinner">
+            <div class="spinner"></div>
+            <p>Generating Lightning invoice…</p>
+          </div>
+          <div id="invoiceContent" style="display:none">
+            <div class="qr-container">
+              <img id="qrImage" src="" alt="Lightning QR code" class="qr-img" />
+            </div>
+            <div class="invoice-details">
+              <div class="invoice-amount">⚡ 200 sats</div>
+              <div class="invoice-memo">Optional donation to cover server costs</div>
+              <div class="invoice-uri" id="invoiceUri"></div>
+              <button class="btn btn-outline btn-sm" onclick="App.copyInvoice()">
+                📋 Copy Invoice
+              </button>
+            </div>
+          </div>
+          <div id="invoiceError" class="error-box" style="display:none"></div>
+        </div>
+
+        <div id="paymentStatus" class="payment-status" style="display:none"></div>
+
+        <div class="btn-row" style="justify-content:center; gap: 1rem; flex-wrap:wrap">
+          <button class="btn btn-success" id="paidBtn" onclick="App.checkPayment()" style="display:none">
+            ✓ I Paid — Verify Payment
+          </button>
+          <button class="btn btn-outline" id="skipBtn" onclick="App.skipDonation()" disabled>
+            Skip (<span id="skipCountdown">5</span>s)
+          </button>
+        </div>
+      </section>
+
+      <!-- ── STEP 4: Processing ── -->
+      <section class="card" id="section-process">
+        <div class="card-icon">⚙️</div>
+        <h2>Processing Your Data</h2>
+        <p class="subtitle">Please wait while we calculate your tax data and generate the draft 1099-DA.</p>
+
+        <div class="process-steps" id="processSteps">
+          <div class="ps-item" id="ps-parse">
+            <div class="ps-indicator pending">
+              <div class="spinner sm"></div>
+            </div>
+            <div class="ps-text">
+              <strong>Parsing transaction data</strong>
+              <span>Reading and normalizing your CSV exports</span>
+            </div>
+          </div>
+          <div class="ps-item" id="ps-ai">
+            <div class="ps-indicator waiting">⏳</div>
+            <div class="ps-text">
+              <strong>AI tax calculation</strong>
+              <span>Sending sanitized data to Venice AI (kimi-k2-5)</span>
+            </div>
+          </div>
+          <div class="ps-item" id="ps-pdf">
+            <div class="ps-indicator waiting">⏳</div>
+            <div class="ps-text">
+              <strong>Building draft 1099-DA PDF</strong>
+              <span>Generating form with ReportLab</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="processError" class="error-box" style="display:none"></div>
+      </section>
+
+      <!-- ── STEP 5: Download ── -->
+      <section class="card" id="section-download">
+        <div class="card-icon">✅</div>
+        <h2>Your Draft 1099-DA Is Ready</h2>
+        <p class="subtitle">Download your draft form and raw tax data below.</p>
+
+        <div id="taxSummary" class="tax-summary"></div>
+
+        <div class="download-grid">
+          <a href="/download/pdf" class="download-card" id="pdfDownload">
+            <div class="dl-icon">📄</div>
+            <div class="dl-info">
+              <strong>Draft 1099-DA PDF</strong>
+              <span>draft_1099DA.pdf</span>
+            </div>
+            <div class="dl-arrow">↓</div>
+          </a>
+          <a href="/download/json" class="download-card" id="jsonDownload">
+            <div class="dl-icon">📊</div>
+            <div class="dl-info">
+              <strong>Raw Tax Data JSON</strong>
+              <span>tax_data.json</span>
+            </div>
+            <div class="dl-arrow">↓</div>
+          </a>
+        </div>
+
+        <div class="ai-badge" id="aiBadge" style="display:none"></div>
+
+        <div class="disclaimer-box mt-1">
+          <strong>⚠ Important:</strong> This is a <em>draft only</em>. You must fill in your personal
+          details (name, address, TIN) and verify all calculations with a qualified tax professional
+          before filing with the IRS.
+        </div>
+
+        <div class="btn-row" style="justify-content:center">
+          <button class="btn btn-outline" onclick="App.startOver()">
+            🔄 Start Over (clears all data)
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>₿ 1099-DA Draft Generator · Privacy-First · Open Source</span>
+        <span>Not tax advice · Draft forms only · Verify with a licensed CPA</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
