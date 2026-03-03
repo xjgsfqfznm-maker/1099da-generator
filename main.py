@@ -31,7 +31,7 @@ from utils.coingecko import enrich_transactions_with_prices
 from utils.pdf_builder import build_1099da_pdf
 from utils.cashu_wallet import (
     create_invoice, check_payment, get_balance,
-    check_and_sweep, start_sweep_background_thread,
+    check_and_sweep, start_sweep_background_thread, init_wallet,
 )
 
 logging.basicConfig(
@@ -368,6 +368,7 @@ def rate_limited(e):
 
 
 if __name__ == "__main__":
+    init_wallet()
     start_sweep_background_thread()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
