@@ -89,22 +89,40 @@ const App = (() => {
     const list = document.getElementById('fileList');
     const btn = document.getElementById('uploadBtn');
 
+    list.replaceChildren();
+
     if (selectedFiles.length === 0) {
-      list.innerHTML = '';
       btn.disabled = true;
       return;
     }
 
-    list.innerHTML = selectedFiles.map((f, i) => `
-      <div class="file-item">
-        <span class="fi-icon">📄</span>
-        <span class="fi-name">${escHtml(f.name)}</span>
-        <span class="fi-size">${formatBytes(f.size)}</span>
-        <button class="fi-remove" onclick="App.removeFile(${i})" title="Remove">✕</button>
-      </div>
-    `).join('');
+    selectedFiles.forEach((f, i) => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
 
-    btn.disabled = selectedFiles.length === 0;
+      const icon = document.createElement('span');
+      icon.className = 'fi-icon';
+      icon.textContent = '📄';
+
+      const name = document.createElement('span');
+      name.className = 'fi-name';
+      name.textContent = f.name;
+
+      const size = document.createElement('span');
+      size.className = 'fi-size';
+      size.textContent = formatBytes(f.size);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'fi-remove';
+      removeBtn.title = 'Remove';
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', () => App.removeFile(i));
+
+      item.append(icon, name, size, removeBtn);
+      list.appendChild(item);
+    });
+
+    btn.disabled = false;
   }
 
   async function uploadFiles() {
