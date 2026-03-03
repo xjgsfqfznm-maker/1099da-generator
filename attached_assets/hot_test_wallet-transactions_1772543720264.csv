@@ -1,0 +1,5 @@
+Date (UTC),Label,Value,Balance,Fee,Value (USD),Txid
+2026-03-02 11:22:39,,75000,75000,,,14abba7f7208140cdbf3350eac988ac9167708612003f638e3365cfc4968f698
+Unconfirmed,testing1,-75000,0,218,,26455f2b2718cbe4b540eeff6ca3aaf3627951be5b08171e9a93a2eacd1507ec
+
+# Historical USD values are taken from daily rates and should only be considered as approximate.
