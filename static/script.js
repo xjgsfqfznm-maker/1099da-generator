@@ -104,17 +104,10 @@ const App = (() => {
       </div>
     `).join('');
 
-    const walletType = document.getElementById('walletSelect').value;
-    btn.disabled = selectedFiles.length === 0 || !walletType;
+    btn.disabled = selectedFiles.length === 0;
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('walletSelect').addEventListener('change', renderFileList);
-  });
-
   async function uploadFiles() {
-    const walletType = document.getElementById('walletSelect').value;
-    if (!walletType) return showUploadError('Please select a wallet type.');
     if (selectedFiles.length === 0) return showUploadError('Please add at least one CSV file.');
 
     const btn = document.getElementById('uploadBtn');
@@ -123,7 +116,6 @@ const App = (() => {
     hideUploadError();
 
     const fd = new FormData();
-    fd.append('wallet_type', walletType);
     selectedFiles.forEach(f => fd.append('files', f));
 
     try {

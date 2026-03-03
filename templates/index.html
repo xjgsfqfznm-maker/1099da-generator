@@ -114,19 +114,7 @@
       <section class="card" id="section-upload">
         <div class="card-icon">📂</div>
         <h2>Upload Wallet CSV Exports</h2>
-        <p class="subtitle">Select your wallet type, then drag and drop up to 10 CSV files (max 5MB each).</p>
-
-        <div class="form-group">
-          <label for="walletSelect">Wallet Type</label>
-          <select id="walletSelect" class="select-input">
-            <option value="">— Select wallet —</option>
-            <option value="sparrow">Sparrow Wallet</option>
-            <option value="phoenix">Phoenix Wallet</option>
-            <option value="zeus">Zeus Wallet</option>
-            <option value="muun">Muun Wallet</option>
-            <option value="wos">Wallet of Satoshi</option>
-          </select>
-        </div>
+        <p class="subtitle">Drag and drop up to 10 CSV files (max 5MB each). The wallet type is detected automatically.</p>
 
         <div class="dropzone" id="dropzone"
              ondragover="App.handleDragOver(event)"

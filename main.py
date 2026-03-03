@@ -108,18 +108,15 @@ def upload():
     session.modified = True
 
     files = request.files.getlist("files")
-    wallet_type = request.form.get("wallet_type", "").strip().lower()
 
     if not files or all(f.filename == "" for f in files):
         return jsonify({"error": "No files provided"}), 400
-
-    if wallet_type not in ("sparrow", "phoenix", "zeus", "muun", "wos"):
-        return jsonify({"error": "Invalid wallet type"}), 400
 
     if len(files) > MAX_FILES:
         return jsonify({"error": f"Maximum {MAX_FILES} files allowed"}), 400
 
     all_transactions = []
+    detected_types = set()
     errors = []
 
     for f in files:
@@ -133,8 +130,9 @@ def upload():
 
         try:
             content = raw_bytes.decode("utf-8", errors="replace")
-            txns = parse_csv(wallet_type, content)
+            txns, wallet_type = parse_csv(content)
             all_transactions.extend(txns)
+            detected_types.add(wallet_type)
         except Exception as e:
             errors.append(f"{f.filename}: {str(e)}")
 
@@ -143,13 +141,14 @@ def upload():
     if not all_transactions and errors:
         return jsonify({"error": "All files failed to parse", "details": errors}), 400
 
+    detected_label = ", ".join(detected_types) if detected_types else "unknown"
     session["transactions"] = all_transactions
-    session["wallet_type"] = wallet_type
+    session["wallet_type"] = detected_label
     session["upload_time"] = time.time()
     session.pop("tax_data", None)
     session.pop("paid", None)
 
-    logger.info(f"POST /upload wallet={wallet_type} txn_count={len(all_transactions)}")
+    logger.info(f"POST /upload wallet={detected_label} txn_count={len(all_transactions)}")
 
     return jsonify({
         "success": True,
