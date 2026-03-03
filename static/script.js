@@ -403,8 +403,9 @@ const App = (() => {
       ? `<div class="ts-row"><span class="ts-label">Your Cost Basis (per BTC)</span><span class="ts-value">${fmtUSD(data.cost_per_btc)}</span></div>`
       : '';
 
-    const pricesRow = data.prices_fetched > 0
-      ? `<div class="ts-row"><span class="ts-label">CoinGecko Prices Fetched</span><span class="ts-value">${data.prices_fetched} date${data.prices_fetched !== 1 ? 's' : ''}</span></div>`
+    const pricesFetched = Math.trunc(Number(data.prices_fetched)) || 0;
+    const pricesRow = pricesFetched > 0
+      ? `<div class="ts-row"><span class="ts-label">CoinGecko Prices Fetched</span><span class="ts-value">${pricesFetched} date${pricesFetched !== 1 ? 's' : ''}</span></div>`
       : '';
 
     document.getElementById('taxSummary').innerHTML = `
