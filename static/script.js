@@ -356,7 +356,7 @@ const App = (() => {
     if (!el) return;
 
     const indicator = el.querySelector('.ps-indicator');
-    const icons = { pending: '<div class="spinner sm"></div>', waiting: '⏳', complete: '✓', failed: '✗' };
+    const icons = { waiting: '⏳', complete: '✓', failed: '✗' };
 
     el.classList.remove('active', 'done');
     if (state === 'pending') {
@@ -371,7 +371,14 @@ const App = (() => {
       indicator.className = 'ps-indicator waiting';
     }
 
-    indicator.innerHTML = icons[state] || '⏳';
+    indicator.textContent = '';
+    if (state === 'pending') {
+      const spinner = document.createElement('div');
+      spinner.className = 'spinner sm';
+      indicator.appendChild(spinner);
+    } else {
+      indicator.textContent = icons[state] || '⏳';
+    }
   }
 
   function showProcessError(msg) {
