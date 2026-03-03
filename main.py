@@ -27,6 +27,7 @@ import io
 
 from parsers import parse_csv
 from utils.ai_client import calculate_tax_data
+from utils.coingecko import enrich_transactions_with_prices
 from utils.pdf_builder import build_1099da_pdf
 from utils.cashu_wallet import (
     create_invoice, check_payment, get_balance,
@@ -115,6 +116,17 @@ def upload():
     if len(files) > MAX_FILES:
         return jsonify({"error": f"Maximum {MAX_FILES} files allowed"}), 400
 
+    # Optional user-provided average cost basis per BTC
+    cost_per_btc_raw = request.form.get("cost_per_btc", "").strip()
+    cost_per_btc = None
+    if cost_per_btc_raw:
+        try:
+            cost_per_btc = float(cost_per_btc_raw.replace(",", "").replace("$", ""))
+            if cost_per_btc <= 0:
+                cost_per_btc = None
+        except ValueError:
+            cost_per_btc = None
+
     all_transactions = []
     detected_types = set()
     errors = []
@@ -144,11 +156,12 @@ def upload():
     detected_label = ", ".join(detected_types) if detected_types else "unknown"
     session["transactions"] = all_transactions
     session["wallet_type"] = detected_label
+    session["cost_per_btc"] = cost_per_btc
     session["upload_time"] = time.time()
     session.pop("tax_data", None)
     session.pop("paid", None)
 
-    logger.info(f"POST /upload wallet={detected_label} txn_count={len(all_transactions)}")
+    logger.info(f"POST /upload wallet={detected_label} txn_count={len(all_transactions)} cost_per_btc={'set' if cost_per_btc else 'not set'}")
 
     return jsonify({
         "success": True,
@@ -243,21 +256,33 @@ def generate():
     if not transactions:
         return jsonify({"error": "No transaction data in session"}), 400
 
+    cost_per_btc = session.get("cost_per_btc")
+
     try:
-        tax_data, used_ai = calculate_tax_data(transactions)
+        # Enrich each transaction with the CoinGecko BTC/USD price for that date.
+        # PRIVACY: Only dates (not amounts or hashes) are sent to CoinGecko.
+        logger.info("POST /generate — fetching CoinGecko historical prices")
+        enriched_transactions, price_map = enrich_transactions_with_prices(transactions)
+        logger.info(f"POST /generate — fetched {len(price_map)} unique date prices")
+
+        tax_data, used_ai = calculate_tax_data(enriched_transactions, cost_per_btc)
         session["tax_data"] = tax_data
         session["used_ai"] = used_ai
+        session["price_map"] = price_map
         session.modified = True
 
         logger.info(
             f"POST /generate used_ai={used_ai} "
             f"short_count={tax_data['short_term']['count']} "
-            f"long_count={tax_data['long_term']['count']}"
+            f"long_count={tax_data['long_term']['count']} "
+            f"cost_per_btc={'set' if cost_per_btc else 'not set'}"
         )
 
         return jsonify({
             "success": True,
             "used_ai": used_ai,
+            "cost_per_btc": cost_per_btc,
+            "prices_fetched": len(price_map),
             "tax_data": tax_data,
         })
     except Exception as e:

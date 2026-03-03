@@ -368,6 +368,59 @@ body {
   margin-bottom: 0.4rem;
 }
 
+.field-optional {
+  font-weight: 400;
+  color: var(--text-light);
+  font-size: 0.8rem;
+}
+
+.field-hint {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.input-prefix-wrap {
+  display: flex;
+  align-items: center;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color var(--transition);
+  background: #fff;
+}
+
+.input-prefix-wrap:focus-within {
+  border-color: var(--btc-orange);
+}
+
+.input-prefix {
+  padding: 0.7rem 0.75rem;
+  background: var(--btc-orange-light);
+  color: var(--btc-orange-dark);
+  font-weight: 700;
+  font-size: 1rem;
+  border-right: 1px solid var(--border);
+  user-select: none;
+}
+
+.text-input {
+  flex: 1;
+  padding: 0.7rem 0.9rem;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  background: transparent;
+  min-width: 0;
+}
+
+.text-input::-webkit-inner-spin-button,
+.text-input::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
 .select-input {
   width: 100%;
   padding: 0.7rem 1rem;

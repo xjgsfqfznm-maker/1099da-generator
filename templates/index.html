@@ -116,6 +116,22 @@
         <h2>Upload Wallet CSV Exports</h2>
         <p class="subtitle">Drag and drop up to 10 CSV files (max 5MB each). The wallet type is detected automatically.</p>
 
+        <div class="form-group">
+          <label for="costPerBtc">Your Average Cost Per Bitcoin (USD) <span class="field-optional">— optional</span></label>
+          <div class="input-prefix-wrap">
+            <span class="input-prefix">$</span>
+            <input
+              type="number"
+              id="costPerBtc"
+              class="text-input"
+              placeholder="e.g. 45000"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <p class="field-hint">What you paid on average per BTC. If provided, this is used as your cost basis and CoinGecko market prices at each transaction date are used for proceeds. Leave blank to use market prices for both.</p>
+        </div>
+
         <div class="dropzone" id="dropzone"
              ondragover="App.handleDragOver(event)"
              ondragleave="App.handleDragLeave(event)"
@@ -204,8 +220,8 @@
           <div class="ps-item" id="ps-ai">
             <div class="ps-indicator waiting">⏳</div>
             <div class="ps-text">
-              <strong>AI tax calculation</strong>
-              <span>Sending sanitized data to Venice AI (kimi-k2-5)</span>
+              <strong>Fetching CoinGecko prices &amp; AI calculation</strong>
+              <span>Pulling historical BTC prices · sending sanitized data to Venice AI (kimi-k2-5)</span>
             </div>
           </div>
           <div class="ps-item" id="ps-pdf">

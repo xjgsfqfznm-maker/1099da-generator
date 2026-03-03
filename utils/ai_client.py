@@ -15,7 +15,7 @@ import hashlib
 import json
 import logging
 import os
-from datetime import date, datetime
+from datetime import date
 from typing import Optional
 
 import requests
@@ -25,15 +25,36 @@ logger = logging.getLogger(__name__)
 VENICE_API_URL = "https://api.venice.ai/api/v1/chat/completions"
 MODEL = "kimi-k2-5"
 
-TAX_PROMPT = (
-    "You are a crypto-tax specialist. Using the supplied Bitcoin transaction list, "
-    "calculate data for IRS 1099-DA. Separate short-term (<=365 days) and long-term (>365 days). "
-    "For each compute: acquisition date, disposition date, proceeds (USD), cost basis (USD), "
-    "gain/loss (USD). Return ONLY JSON with fields: "
-    "short_term {proceeds, cost_basis, gain_loss, count}, "
-    "long_term {proceeds, cost_basis, gain_loss, count}. "
-    "No personal identifiers."
-)
+
+def _build_prompt(cost_per_btc: Optional[float]) -> str:
+    """Build the system prompt, incorporating user cost basis if provided."""
+    base = (
+        "You are a crypto-tax specialist. Using the supplied Bitcoin transaction list, "
+        "calculate data for IRS 1099-DA. Each transaction includes a 'market_price_usd' field "
+        "showing the BTC/USD market price on that date from CoinGecko. "
+        "Separate results into short-term (held <=365 days) and long-term (held >365 days). "
+    )
+
+    if cost_per_btc and cost_per_btc > 0:
+        base += (
+            f"The user's stated average cost basis is ${cost_per_btc:,.2f} per BTC. "
+            "Use this as the cost basis for all acquisition (receive) transactions. "
+            "For disposition (send/sell) transactions, use market_price_usd × amount_btc as proceeds. "
+            "Capital gain/loss = proceeds - cost_basis. "
+        )
+    else:
+        base += (
+            "For disposition (send/sell) transactions, use market_price_usd × amount_btc as proceeds. "
+            "For acquisition (receive) transactions, use market_price_usd × amount_btc as cost basis. "
+        )
+
+    base += (
+        "Return ONLY JSON with fields: "
+        "short_term {proceeds, cost_basis, gain_loss, count}, "
+        "long_term {proceeds, cost_basis, gain_loss, count}. "
+        "No personal identifiers."
+    )
+    return base
 
 
 def _sanitize_transactions(transactions: list[dict]) -> list[dict]:
@@ -43,6 +64,7 @@ def _sanitize_transactions(transactions: list[dict]) -> list[dict]:
     - Strip descriptions
     - Round timestamps to day
     - Round amounts to 8 decimals
+    - Retain market_price_usd (public market data, not private)
     """
     sanitized = []
     for tx in transactions:
@@ -53,14 +75,17 @@ def _sanitize_transactions(transactions: list[dict]) -> list[dict]:
             "date": tx.get("date", ""),
             "type": tx.get("type", ""),
             "amount_btc": round(float(tx.get("amount_btc", 0)), 8),
-            "usd_value": round(float(tx.get("usd_value", 0)), 2),
+            "market_price_usd": tx.get("market_price_usd"),
             "fee_btc": round(float(tx.get("fee_btc", 0)), 8),
             "tx_hash": hashed,
         })
     return sanitized
 
 
-def _call_venice_ai(transactions: list[dict]) -> Optional[dict]:
+def _call_venice_ai(
+    transactions: list[dict],
+    cost_per_btc: Optional[float] = None,
+) -> Optional[dict]:
     """Send sanitized transaction data to Venice AI and return parsed JSON."""
     api_key = os.getenv("VENICE_API_KEY")
     if not api_key:
@@ -69,6 +94,7 @@ def _call_venice_ai(transactions: list[dict]) -> Optional[dict]:
 
     sanitized = _sanitize_transactions(transactions)
     payload_str = json.dumps(sanitized, separators=(",", ":"))
+    prompt = _build_prompt(cost_per_btc)
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -78,7 +104,7 @@ def _call_venice_ai(transactions: list[dict]) -> Optional[dict]:
     body = {
         "model": MODEL,
         "messages": [
-            {"role": "system", "content": TAX_PROMPT},
+            {"role": "system", "content": prompt},
             {"role": "user", "content": payload_str},
         ],
         "temperature": 0.1,
@@ -104,28 +130,30 @@ def _call_venice_ai(transactions: list[dict]) -> Optional[dict]:
         return None
 
 
-def _fifo_fallback(transactions: list[dict]) -> dict:
+def _fifo_fallback(
+    transactions: list[dict],
+    cost_per_btc: Optional[float] = None,
+) -> dict:
     """
     FIFO cost-basis calculator fallback when AI is unavailable.
-    Matches sell events against earliest unmatched buy events.
+
+    If cost_per_btc is provided, it overrides the per-acquisition cost basis.
+    Historical market prices (market_price_usd) are used for proceeds on sales.
+    Holding period (short/long term) is determined by FIFO acquisition date matching.
     """
-    buys = []
-    short_proceeds = 0.0
-    short_cost = 0.0
-    short_gain = 0.0
+    buys: list[dict] = []
+    short_proceeds = short_cost = short_gain = 0.0
     short_count = 0
-    long_proceeds = 0.0
-    long_cost = 0.0
-    long_gain = 0.0
+    long_proceeds = long_cost = long_gain = 0.0
     long_count = 0
 
     for tx in sorted(transactions, key=lambda x: x.get("date", "")):
         tx_type = tx.get("type", "")
         amount = float(tx.get("amount_btc", 0))
-        usd = float(tx.get("usd_value", 0))
+        market_price = tx.get("market_price_usd")
         tx_date_str = tx.get("date", "")
 
-        if not tx_date_str:
+        if not tx_date_str or amount <= 0:
             continue
 
         try:
@@ -133,24 +161,39 @@ def _fifo_fallback(transactions: list[dict]) -> dict:
         except ValueError:
             continue
 
-        if tx_type == "receive" and amount > 0:
-            per_btc = usd / amount if amount > 0 else 0.0
+        if tx_type == "receive":
+            # Cost basis: use user-supplied flat rate or market price at acquisition
+            if cost_per_btc and cost_per_btc > 0:
+                acq_cost_per_btc = cost_per_btc
+            elif market_price:
+                acq_cost_per_btc = market_price
+            else:
+                acq_cost_per_btc = float(tx.get("usd_value", 0)) / amount if amount else 0.0
+
             buys.append({
                 "date": tx_date,
                 "amount_btc": amount,
-                "cost_per_btc": per_btc,
+                "cost_per_btc": acq_cost_per_btc,
             })
 
-        elif tx_type == "send" and amount > 0 and usd > 0:
+        elif tx_type == "send":
+            # Proceeds: use market price at sale date × BTC amount
+            if market_price:
+                proceeds_per_btc = market_price
+            else:
+                usd = float(tx.get("usd_value", 0))
+                proceeds_per_btc = usd / amount if amount else 0.0
+
+            if proceeds_per_btc <= 0:
+                continue
+
             remaining = amount
-            proceeds_portion = usd
 
             while remaining > 1e-10 and buys:
                 buy = buys[0]
                 used = min(buy["amount_btc"], remaining)
+                proceeds_share = used * proceeds_per_btc
                 cost_portion = used * buy["cost_per_btc"]
-                proceeds_share = (used / amount) * proceeds_portion
-
                 holding_days = (tx_date - buy["date"]).days
 
                 if holding_days <= 365:
@@ -186,12 +229,16 @@ def _fifo_fallback(transactions: list[dict]) -> dict:
     }
 
 
-def calculate_tax_data(transactions: list[dict]) -> tuple[dict, bool]:
+def calculate_tax_data(
+    transactions: list[dict],
+    cost_per_btc: Optional[float] = None,
+) -> tuple[dict, bool]:
     """
     Calculate tax data from transactions.
+    Transactions should already be enriched with 'market_price_usd' from CoinGecko.
     Returns (result_dict, used_ai: bool).
     """
-    ai_result = _call_venice_ai(transactions)
+    ai_result = _call_venice_ai(transactions, cost_per_btc)
     if ai_result and "short_term" in ai_result and "long_term" in ai_result:
         for key in ("short_term", "long_term"):
             section = ai_result[key]
@@ -203,4 +250,4 @@ def calculate_tax_data(transactions: list[dict]) -> tuple[dict, bool]:
         return ai_result, True
 
     logger.info("Using FIFO fallback calculator")
-    return _fifo_fallback(transactions), False
+    return _fifo_fallback(transactions, cost_per_btc), False

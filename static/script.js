@@ -118,6 +118,11 @@ const App = (() => {
     const fd = new FormData();
     selectedFiles.forEach(f => fd.append('files', f));
 
+    const costRaw = document.getElementById('costPerBtc').value.trim();
+    if (costRaw && parseFloat(costRaw) > 0) {
+      fd.append('cost_per_btc', costRaw);
+    }
+
     try {
       const res = await fetch('/upload', { method: 'POST', body: fd });
       const data = await res.json();
@@ -367,17 +372,27 @@ const App = (() => {
 
     const gainClass = (v) => v < 0 ? 'loss' : 'gain';
     const fmt = (v) => `$${Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}${v < 0 ? ' (loss)' : ''}`;
+    const fmtUSD = (v) => `$${Number(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+
+    const costRow = data.cost_per_btc
+      ? `<div class="ts-row"><span class="ts-label">Your Cost Basis (per BTC)</span><span class="ts-value">${fmtUSD(data.cost_per_btc)}</span></div>`
+      : '';
+
+    const pricesRow = data.prices_fetched > 0
+      ? `<div class="ts-row"><span class="ts-label">CoinGecko Prices Fetched</span><span class="ts-value">${data.prices_fetched} date${data.prices_fetched !== 1 ? 's' : ''}</span></div>`
+      : '';
 
     document.getElementById('taxSummary').innerHTML = `
-      <div class="ts-section-title">Short-Term (held ≤365 days)</div>
-      <div class="ts-row"><span class="ts-label">Proceeds</span><span class="ts-value">$${(st.proceeds||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>
-      <div class="ts-row"><span class="ts-label">Cost Basis</span><span class="ts-value">$${(st.cost_basis||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>
+      ${costRow}${pricesRow}
+      <div class="ts-section-title" style="margin-top:${costRow || pricesRow ? '0.5rem' : '0'}">Short-Term (held ≤365 days)</div>
+      <div class="ts-row"><span class="ts-label">Proceeds</span><span class="ts-value">${fmtUSD(st.proceeds||0)}</span></div>
+      <div class="ts-row"><span class="ts-label">Cost Basis</span><span class="ts-value">${fmtUSD(st.cost_basis||0)}</span></div>
       <div class="ts-row"><span class="ts-label">Net Gain / Loss</span><span class="ts-value ${gainClass(st.gain_loss||0)}">${fmt(st.gain_loss||0)}</span></div>
       <div class="ts-row"><span class="ts-label">Dispositions</span><span class="ts-value">${st.count||0}</span></div>
 
       <div class="ts-section-title" style="margin-top:0.5rem">Long-Term (held >365 days)</div>
-      <div class="ts-row"><span class="ts-label">Proceeds</span><span class="ts-value">$${(lt.proceeds||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>
-      <div class="ts-row"><span class="ts-label">Cost Basis</span><span class="ts-value">$${(lt.cost_basis||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>
+      <div class="ts-row"><span class="ts-label">Proceeds</span><span class="ts-value">${fmtUSD(lt.proceeds||0)}</span></div>
+      <div class="ts-row"><span class="ts-label">Cost Basis</span><span class="ts-value">${fmtUSD(lt.cost_basis||0)}</span></div>
       <div class="ts-row"><span class="ts-label">Net Gain / Loss</span><span class="ts-value ${gainClass(lt.gain_loss||0)}">${fmt(lt.gain_loss||0)}</span></div>
       <div class="ts-row"><span class="ts-label">Dispositions</span><span class="ts-value">${lt.count||0}</span></div>
 
@@ -387,9 +402,10 @@ const App = (() => {
 
     const aiBadge = document.getElementById('aiBadge');
     aiBadge.style.display = 'block';
-    aiBadge.textContent = data.used_ai
-      ? '🤖 Calculated using Venice AI (kimi-k2-5) with sanitized data'
-      : '🧮 Calculated using FIFO fallback (Venice AI unavailable)';
+    const engine = data.used_ai ? '🤖 Venice AI (kimi-k2-5)' : '🧮 FIFO fallback calculator';
+    const costNote = data.cost_per_btc ? ` · Cost basis: $${Number(data.cost_per_btc).toLocaleString('en-US')} /BTC` : '';
+    const priceNote = data.prices_fetched > 0 ? ` · ${data.prices_fetched} CoinGecko prices` : '';
+    aiBadge.textContent = `${engine}${costNote}${priceNote}`;
   }
 
   function startOver() {
@@ -402,7 +418,7 @@ const App = (() => {
         clearCountdown();
         clearPaymentPoll();
         document.getElementById('fileList').innerHTML = '';
-        document.getElementById('walletSelect').value = '';
+        document.getElementById('costPerBtc').value = '';
         document.getElementById('uploadBtn').disabled = true;
         hideUploadError();
         goTo(1);
