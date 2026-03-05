@@ -44,7 +44,7 @@ README.md
 - **CSV Parsers:** Sparrow, Phoenix, Zeus, Muun, Wallet of Satoshi — all normalize to `{date, type, amount_btc, usd_value, fee_btc, tx_hash, description}`
 - **Privacy:** No database, session-only storage, files read to RAM and immediately discarded, 10-minute session expiry
 - **Security headers:** X-Frame-Options DENY, CSP strict, nosniff, no-store cache
-- **Rate limiting:** 3 requests/IP/hour via flask-limiter
+- **Rate limiting:** 20 requests/IP/hour via flask-limiter
 - **AI:** Venice AI kimi-k2-5 with sanitization (SHA-256 hashed tx_hash, stripped descriptions); FIFO fallback if AI unavailable
 - **Cashu wallet:** Persistent via CASHU_SEED secret; auto-sweep to Lightning address when balance ≥ 10,000 sats
 - **PDF:** Draft IRS 1099-DA with watermark "DRAFT - VERIFY ALL CALCULATIONS"; boxes 1a-1g, 2, 3 filled; personal fields left blank

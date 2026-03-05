@@ -52,7 +52,7 @@ app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 limiter = Limiter(
     key_func=get_remote_address,
     app=app,
-    default_limits=["3 per hour"],
+    default_limits=["20 per hour"],
     storage_uri="memory://",
 )
 
@@ -96,7 +96,7 @@ def index():
 
 
 @app.route("/upload", methods=["POST"])
-@limiter.limit("3 per hour")
+@limiter.limit("20 per hour")
 def upload():
     """
     Handle CSV uploads from up to 10 wallet files.
@@ -235,7 +235,7 @@ def check_payment_route():
 
 
 @app.route("/generate", methods=["POST"])
-@limiter.limit("3 per hour")
+@limiter.limit("20 per hour")
 @session_required
 def generate():
     """
@@ -364,7 +364,7 @@ def too_large(e):
 
 @app.errorhandler(429)
 def rate_limited(e):
-    return jsonify({"error": "Rate limit exceeded. Maximum 3 requests per hour per IP."}), 429
+    return jsonify({"error": "Rate limit exceeded. Maximum 20 requests per hour per IP."}), 429
 
 
 if __name__ == "__main__":
