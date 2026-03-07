@@ -12,7 +12,6 @@ PDF BOX MAPPING (IRS 1099-DA draft layout):
   Box 2:  Short-term / long-term indicator
   Box 3:  Check if proceeds from collectibles
 
-WATERMARK: "DRAFT - VERIFY ALL CALCULATIONS" is stamped diagonally across each page.
 BLANK FIELDS: Payer/Recipient name, address, TIN, and account number are left blank
               for the user to fill in manually.
 
@@ -38,18 +37,6 @@ LIGHT_GRAY = colors.HexColor("#F5F5F5")
 MID_GRAY = colors.HexColor("#CCCCCC")
 WHITE = colors.white
 BLACK = colors.black
-
-
-def _add_watermark(c: canvas.Canvas, width: float, height: float) -> None:
-    """Stamp diagonal DRAFT watermark on the canvas."""
-    c.saveState()
-    c.setFont("Helvetica-Bold", 52)
-    c.setFillColor(colors.HexColor("#FF000020"))
-    c.setFillAlpha(0.12)
-    c.translate(width / 2, height / 2)
-    c.rotate(40)
-    c.drawCentredString(0, 0, "DRAFT - VERIFY ALL CALCULATIONS")
-    c.restoreState()
 
 
 def _draw_box(c: canvas.Canvas, x, y, w, h, label: str, value: str, label_size=6, value_size=9) -> None:
@@ -87,8 +74,6 @@ def build_1099da_pdf(tax_data: dict, tax_year: int = None) -> bytes:
     c = canvas.Canvas(buf, pagesize=letter)
 
     def render_page(section_label: str, section_data: dict, page_num: int, total_pages: int) -> None:
-        _add_watermark(c, width, height)
-
         margin = 0.5 * inch
         content_width = width - 2 * margin
 
@@ -96,7 +81,7 @@ def build_1099da_pdf(tax_data: dict, tax_year: int = None) -> bytes:
 
         c.setFillColor(BTC_ORANGE)
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(margin, y - 18, f"DRAFT Form 1099-DA")
+        c.drawString(margin, y - 18, f"Form 1099-DA")
         c.setFont("Helvetica", 9)
         c.setFillColor(DARK_GRAY)
         c.drawString(margin, y - 32, f"Digital Asset Proceeds from Broker and Barter Exchange Transactions — Tax Year {tax_year}")
@@ -106,19 +91,7 @@ def build_1099da_pdf(tax_data: dict, tax_year: int = None) -> bytes:
         c.setLineWidth(1.5)
         c.line(margin, y - 38, width - margin, y - 38)
 
-        c.setFillColor(colors.HexColor("#FFF3E0"))
-        c.setStrokeColor(BTC_ORANGE)
-        c.setLineWidth(0.5)
-        c.rect(margin, y - 80, content_width, 38, fill=1, stroke=1)
-        c.setFillColor(colors.HexColor("#E65100"))
-        c.setFont("Helvetica-Bold", 8)
-        c.drawString(margin + 5, y - 56, "⚠  DRAFT ONLY — NOT FOR FILING")
-        c.setFont("Helvetica", 7.5)
-        c.setFillColor(DARK_GRAY)
-        c.drawString(margin + 5, y - 68,
-                     "This draft was generated from wallet CSV data. Verify all calculations with a licensed tax professional before filing.")
-
-        top_y = y - 95
+        top_y = y - 50
         box_h = 35
         third = content_width / 3
 
@@ -223,7 +196,7 @@ def build_1099da_pdf(tax_data: dict, tax_year: int = None) -> bytes:
         c.setFont("Helvetica", 6.5)
         c.setFillColor(colors.HexColor("#888888"))
         c.drawCentredString(width / 2, footer_y,
-                            "DRAFT — Generated from self-custodial wallet data. "
+                            "Generated from self-custodial wallet data. "
                             "NOT tax advice. Verify with a qualified CPA or tax professional. "
                             "This form is not submitted to the IRS.")
 

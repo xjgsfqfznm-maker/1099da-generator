@@ -47,7 +47,7 @@ README.md
 - **Rate limiting:** 20 requests/IP/hour via flask-limiter
 - **AI:** Venice AI kimi-k2-5 with sanitization (SHA-256 hashed tx_hash, stripped descriptions); FIFO fallback if AI unavailable
 - **Cashu wallet:** Persistent via CASHU_SEED secret; auto-sweep to Lightning address when balance ≥ 10,000 sats
-- **PDF:** Draft IRS 1099-DA with watermark "DRAFT - VERIFY ALL CALCULATIONS"; boxes 1a-1g, 2, 3 filled; personal fields left blank
+- **PDF:** IRS 1099-DA with boxes 1a-1g, 2, 3 filled; personal fields left blank for manual completion
 
 ## Port
 
