@@ -132,7 +132,7 @@ async def _check_payment_async(quote_id: str) -> bool:
         from cashu.core.base import MintQuoteState
         quote = await w.get_mint_quote(quote_id)
         if hasattr(quote, "state") and quote.state == MintQuoteState.paid:
-            await w.mint(w.available_balance + DONATION_SATS, quote_id=quote_id)
+            await w.mint(DONATION_SATS, quote_id=quote_id)
             await w.load_proofs()
             return True
         return False
@@ -158,7 +158,7 @@ async def _get_balance_async() -> int:
         return 0
     try:
         await w.load_proofs()
-        return w.available_balance
+        return int(w.available_balance)
     except Exception as exc:
         logger.error(f"Balance check failed: {exc!r}")
         return 0
