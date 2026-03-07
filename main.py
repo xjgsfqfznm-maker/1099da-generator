@@ -367,8 +367,9 @@ def rate_limited(e):
     return jsonify({"error": "Rate limit exceeded. Maximum 20 requests per hour per IP."}), 429
 
 
+init_wallet()
+start_sweep_background_thread()
+
 if __name__ == "__main__":
-    init_wallet()
-    start_sweep_background_thread()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
