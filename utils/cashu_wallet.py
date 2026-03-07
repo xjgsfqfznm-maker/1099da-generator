@@ -158,7 +158,8 @@ async def _get_balance_async() -> int:
         return 0
     try:
         await w.load_proofs()
-        return int(w.available_balance)
+        bal = w.available_balance
+        return bal.amount if hasattr(bal, "amount") else int(bal)
     except Exception as exc:
         logger.error(f"Balance check failed: {exc!r}")
         return 0

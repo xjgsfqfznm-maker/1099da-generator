@@ -140,8 +140,10 @@ def _fifo_fallback(
     If cost_per_btc is provided, it overrides the per-acquisition cost basis.
     Historical market prices (market_price_usd) are used for proceeds on sales.
     Holding period (short/long term) is determined by FIFO acquisition date matching.
+    Returns aggregated short/long term totals plus a per-disposition list.
     """
     buys: list[dict] = []
+    dispositions: list[dict] = []
     short_proceeds = short_cost = short_gain = 0.0
     short_count = 0
     long_proceeds = long_cost = long_gain = 0.0
@@ -195,8 +197,9 @@ def _fifo_fallback(
                 proceeds_share = used * proceeds_per_btc
                 cost_portion = used * buy["cost_per_btc"]
                 holding_days = (tx_date - buy["date"]).days
+                term = "long" if holding_days > 365 else "short"
 
-                if holding_days <= 365:
+                if term == "short":
                     short_proceeds += proceeds_share
                     short_cost += cost_portion
                     short_gain += proceeds_share - cost_portion
@@ -206,6 +209,16 @@ def _fifo_fallback(
                     long_cost += cost_portion
                     long_gain += proceeds_share - cost_portion
                     long_count += 1
+
+                dispositions.append({
+                    "acq_date": buy["date"].isoformat(),
+                    "sale_date": tx_date_str,
+                    "amount_btc": round(used, 8),
+                    "proceeds": round(proceeds_share, 2),
+                    "cost_basis": round(cost_portion, 2),
+                    "gain_loss": round(proceeds_share - cost_portion, 2),
+                    "term": term,
+                })
 
                 buy["amount_btc"] -= used
                 remaining -= used
@@ -226,6 +239,7 @@ def _fifo_fallback(
             "gain_loss": round(long_gain, 2),
             "count": long_count,
         },
+        "dispositions": dispositions,
     }
 
 
@@ -238,6 +252,8 @@ def calculate_tax_data(
     Transactions should already be enriched with 'market_price_usd' from CoinGecko.
     Returns (result_dict, used_ai: bool).
     """
+    fifo_result = _fifo_fallback(transactions, cost_per_btc)
+
     ai_result = _call_venice_ai(transactions, cost_per_btc)
     if ai_result and "short_term" in ai_result and "long_term" in ai_result:
         for key in ("short_term", "long_term"):
@@ -247,7 +263,8 @@ def calculate_tax_data(
                     section[field] = 0.0
             if "count" not in section:
                 section["count"] = 0
+        ai_result["dispositions"] = fifo_result.get("dispositions", [])
         return ai_result, True
 
     logger.info("Using FIFO fallback calculator")
-    return _fifo_fallback(transactions, cost_per_btc), False
+    return fifo_result, False
