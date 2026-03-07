@@ -72,3 +72,7 @@ The sweep runs:
 ## Disclaimer
 
 This tool generates **draft forms only** and is **not tax advice**. All calculations must be verified with a licensed CPA or tax professional before filing with the IRS. The generated form is not automatically submitted to the IRS.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
