@@ -405,7 +405,7 @@ const App = (() => {
 
     const pricesFetched = Math.trunc(Number(data.prices_fetched)) || 0;
     const pricesRow = pricesFetched > 0
-      ? `<div class="ts-row"><span class="ts-label">CoinGecko Prices Fetched</span><span class="ts-value">${pricesFetched} date${pricesFetched !== 1 ? 's' : ''}</span></div>`
+      ? `<div class="ts-row"><span class="ts-label">Kraken Prices Fetched</span><span class="ts-value">${pricesFetched} date${pricesFetched !== 1 ? 's' : ''}</span></div>`
       : '';
 
     document.getElementById('taxSummary').innerHTML = `
@@ -430,7 +430,7 @@ const App = (() => {
     aiBadge.style.display = 'block';
     const engine = data.used_ai ? '🤖 Venice AI (kimi-k2-5)' : '🧮 FIFO fallback calculator';
     const costNote = data.cost_per_btc ? ` · Cost basis: $${Number(data.cost_per_btc).toLocaleString('en-US')} /BTC` : '';
-    const priceNote = data.prices_fetched > 0 ? ` · ${data.prices_fetched} CoinGecko prices` : '';
+    const priceNote = data.prices_fetched > 0 ? ` · ${data.prices_fetched} Kraken prices` : '';
     aiBadge.textContent = `${engine}${costNote}${priceNote}`;
   }
 
