@@ -10,6 +10,10 @@ A privacy-first web application that helps U.S. Bitcoin holders generate a draft
 - **Muun** — hybrid on-chain/Lightning wallet
 - **Wallet of Satoshi (WoS)** — custodial Lightning wallet
 
+## Wallets Considered But Not Supported
+
+**Nunchuk** — Nunchuk's CSV export stores block height instead of a human-readable date (`txid,fee,amount,height,memo`). Resolving block heights to timestamps requires an external API call to a block explorer, which would introduce a network dependency that could expose your transaction data to a third party. This conflicts with the privacy-first design of this app, which makes no external data requests with transaction details. Nunchuk support was therefore not added.
+
 ## Setup: Required Secrets
 
 Set these in your Replit Secrets panel before running:
