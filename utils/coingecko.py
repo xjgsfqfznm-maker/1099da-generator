@@ -1,31 +1,34 @@
 """
-CoinGecko Historical Bitcoin Price Fetcher
+Bitcoin Historical Price Fetcher (Kraken OHLC API)
 
 Fetches the daily BTC/USD closing price for each unique transaction date.
 Results are cached in-memory for the lifetime of the process to avoid
-redundant API calls (CoinGecko free tier: 30 calls/minute).
+redundant API calls.
 
-PRIVACY: Only dates are sent to CoinGecko — no amounts, addresses, or
-transaction data leave the server.
+Uses the Kraken public OHLC endpoint — no API key required.
+
+PRIVACY: Only dates (converted to Unix timestamps) are sent to Kraken — no
+amounts, addresses, or transaction data leave the server.
 """
 import logging
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Optional
 
 import requests
 
 logger = logging.getLogger(__name__)
 
-COINGECKO_URL = "https://api.coingecko.com/api/v3/coins/bitcoin/history"
+KRAKEN_OHLC_URL = "https://api.kraken.com/0/public/OHLC"
+KRAKEN_PAIR = "XBTUSD"
+INTERVAL_DAILY = 1440  # minutes
 
 _price_cache: dict[str, float] = {}
 _last_request_time: float = 0.0
-_MIN_REQUEST_GAP = 2.1  # seconds between requests (free tier: ~30/min)
+_MIN_REQUEST_GAP = 1.5  # seconds between requests
 
 
 def _throttle() -> None:
-    """Ensure we don't exceed CoinGecko free-tier rate limits."""
     global _last_request_time
     elapsed = time.monotonic() - _last_request_time
     if elapsed < _MIN_REQUEST_GAP:
@@ -35,8 +38,8 @@ def _throttle() -> None:
 
 def get_btc_price_on_date(iso_date: str) -> Optional[float]:
     """
-    Return the BTC/USD price for a given ISO date string (YYYY-MM-DD).
-    Uses in-memory cache; fetches from CoinGecko on cache miss.
+    Return the BTC/USD closing price for a given ISO date string (YYYY-MM-DD).
+    Uses in-memory cache; fetches from Kraken OHLC on cache miss.
     Returns None if the request fails.
     """
     if iso_date in _price_cache:
@@ -48,26 +51,42 @@ def get_btc_price_on_date(iso_date: str) -> Optional[float]:
         logger.warning(f"Invalid date for price lookup: {iso_date}")
         return None
 
-    # CoinGecko expects DD-MM-YYYY
-    cg_date = d.strftime("%d-%m-%Y")
+    # Convert date to Unix timestamp (start of day UTC)
+    since_ts = int(datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp())
 
     _throttle()
 
     try:
         resp = requests.get(
-            COINGECKO_URL,
-            params={"date": cg_date, "localization": "false"},
-            timeout=15,
+            KRAKEN_OHLC_URL,
+            params={
+                "pair": KRAKEN_PAIR,
+                "interval": INTERVAL_DAILY,
+                "since": since_ts,
+            },
+            timeout=10,
         )
         resp.raise_for_status()
         data = resp.json()
-        price = data["market_data"]["current_price"]["usd"]
-        price = round(float(price), 2)
-        _price_cache[iso_date] = price
-        logger.info(f"CoinGecko: BTC on {iso_date} = ${price:,.2f}")
-        return price
-    except (requests.RequestException, KeyError, ValueError, TypeError) as e:
-        logger.warning(f"CoinGecko price fetch failed for {iso_date}: {e}")
+
+        if data.get("error"):
+            logger.warning(f"Kraken API error for {iso_date}: {data['error']}")
+            return None
+
+        result = data.get("result", {})
+        candles = result.get("XXBTZUSD") or result.get("XBTUSD") or []
+        if not candles:
+            logger.warning(f"Kraken: no candle data returned for {iso_date}")
+            return None
+
+        # Candle format: [time, open, high, low, close, vwap, volume, count]
+        close_price = round(float(candles[0][4]), 2)
+        _price_cache[iso_date] = close_price
+        logger.info(f"Kraken: BTC on {iso_date} = ${close_price:,.2f}")
+        return close_price
+
+    except (requests.RequestException, KeyError, ValueError, TypeError, IndexError) as e:
+        logger.warning(f"Kraken price fetch failed for {iso_date}: {e}")
         return None
 
 

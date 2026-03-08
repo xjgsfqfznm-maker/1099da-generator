@@ -112,7 +112,7 @@ def _call_venice_ai(
     }
 
     try:
-        resp = requests.post(VENICE_API_URL, headers=headers, json=body, timeout=60)
+        resp = requests.post(VENICE_API_URL, headers=headers, json=body, timeout=25)
         resp.raise_for_status()
         data = resp.json()
         content = data["choices"][0]["message"]["content"].strip()
