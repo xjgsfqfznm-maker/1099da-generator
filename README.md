@@ -62,6 +62,11 @@ The sweep runs:
 | Logging | HTTP method + endpoint only — no transaction data, no IPs |
 | Security headers | X-Frame-Options DENY, CSP strict, nosniff |
 | Rate limiting | 3 requests per IP per hour |
+| Price lookups | Kraken public OHLC API — only dates sent, no transaction data; no API key required |
+
+### Price Lookup API
+
+Historical BTC/USD prices are fetched from the **Kraken public OHLC API** (`api.kraken.com/0/public/OHLC`). No API key is required. Only transaction dates (as Unix timestamps) are sent — no amounts, addresses, or any other transaction data. CoinGecko was previously used but began requiring authentication in late 2024, causing request failures.
 
 ## User Flow
 
