@@ -61,7 +61,7 @@ The sweep runs:
 | AI sanitization | tx_hash → SHA-256; descriptions stripped; timestamps → day only |
 | Logging | HTTP method + endpoint only — no transaction data, no IPs |
 | Security headers | X-Frame-Options DENY, CSP strict, nosniff |
-| Rate limiting | 3 requests per IP per hour |
+| Rate limiting | 25 requests per IP per hour |
 | Price lookups | Kraken public OHLC API — only dates sent, no transaction data; no API key required |
 
 ### Price Lookup API
